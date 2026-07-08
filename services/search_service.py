@@ -34,7 +34,14 @@ def search_songs(query: str) -> list[dict]:
         .all()
     )
 
-    return [song.to_dict() for song in results]
+    seen = set()
+    unique_results = []
+    for song in results:
+        if song.id not in seen:
+            unique_results.append(song.to_dict())
+            seen.add(song.id)
+
+    return unique_results
 
 
 def get_song(song_id: str) -> dict:
