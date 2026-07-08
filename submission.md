@@ -61,3 +61,35 @@ The `search_songs` function query joins the `Song` table with the `song_tags` ta
 ### My fix and side-effect check
 
 I modified `search_songs` in [search_service.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/services/search_service.py) to keep track of seen song IDs using a set and filter out duplicate song entities before returning them. I verified this fix by querying `/songs/search?q=Anthem` again via curl and running the pytest test suite, confirming that "Crown Heights Anthem" appears exactly once.
+
+## Issue #4 — I got notified when a friend added my song to a playlist but not when they rated it
+
+### How I reproduced it
+
+I reproduced the bug by finding a seeded song shared by user `nova` and having user `darius` rate it:
+
+```bash
+curl -s -X POST "http://127.0.0.1:5000/songs/<song_id>/rate" \
+-H "Content-Type: application/json" \
+-d '{"user_id": "<darius_user_id>", "score": 5}' | python3 -m json.tool
+```
+
+Then I checked user `nova`'s notifications:
+
+```bash
+curl -s "http://127.0.0.1:5000/users/<nova_user_id>/notifications" | python3 -m json.tool
+```
+
+Before the fix, the rating was saved successfully but no notification appeared in `nova`'s notifications list.
+
+### How I found the root cause
+
+I traced the rating route handler in [songs.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/routes/songs.py) to `rate_song` in [notification_service.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/services/notification_service.py). I compared the rating flow with the playlist addition flow (`add_to_playlist`) which correctly triggers notifications.
+
+### The root cause
+
+The `rate_song` function in [notification_service.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/services/notification_service.py) updated/created the rating record in the database, but failed to call `create_notification` to notify the original song creator/sharer of the rating.
+
+### My fix and side-effect check
+
+I added notification generation logic inside `rate_song` right after committing the rating. It creates a notification of type `song_rated` for `song.shared_by` (the creator) if the rater is someone other than the creator. I verified that rating a song now correctly generates the notification and that other notifications (such as adding to a playlist) still work properly.
