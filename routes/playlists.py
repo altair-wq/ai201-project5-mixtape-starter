@@ -44,9 +44,9 @@ def get_songs(playlist_id):
 def add_song(playlist_id):
     data = request.get_json()
     song_id = data.get("song_id")
-    added_by = data.get("added_by")
+    added_by = data.get("added_by") or data.get("user_id")
     if not song_id or not added_by:
-        return jsonify({"error": "song_id and added_by are required"}), 400
+        return jsonify({"error": "song_id and added_by/user_id are required"}), 400
     try:
         add_to_playlist(playlist_id, song_id, added_by)
         return jsonify({"message": "Song added to playlist"}), 201

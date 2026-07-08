@@ -6,7 +6,7 @@ Notifications are generated when friends interact with a user's shared songs.
 """
 
 from app import db
-from models import Notification, Song, User, Rating
+from models import Notification, Song, User, Rating, playlist_entries
 from sqlalchemy import desc
 
 
@@ -58,7 +58,15 @@ def add_to_playlist(playlist_id: str, song_id: str, added_by_user_id: str) -> No
 
     # Add the song to the playlist
     if song not in playlist.songs:
-        playlist.songs.append(song)
+        next_position = len(playlist.songs) + 1
+        db.session.execute(
+            playlist_entries.insert().values(
+                playlist_id=playlist_id,
+                song_id=song_id,
+                position=next_position,
+                added_by=added_by_user_id,
+            )
+        )
         db.session.commit()
 
     # Notify the person who originally shared the song (if it wasn't them who added it)

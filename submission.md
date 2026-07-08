@@ -93,3 +93,39 @@ The `rate_song` function in [notification_service.py](file:///Users/altairadilkh
 ### My fix and side-effect check
 
 I added notification generation logic inside `rate_song` right after committing the rating. It creates a notification of type `song_rated` for `song.shared_by` (the creator) if the rater is someone other than the creator. I verified that rating a song now correctly generates the notification and that other notifications (such as adding to a playlist) still work properly.
+
+## Issue #5 — The last song in a playlist never shows up
+
+### How I reproduced it
+
+I reproduced the bug by querying the songs in the seeded `Late Night Vibes` playlist:
+
+```bash
+curl -s "http://127.0.0.1:5000/playlists/<playlist_id>/songs" | python3 -m json.tool
+```
+
+Although the playlist actually had 7 songs in the database, only 6 were returned in the JSON response list.
+
+### How I found the root cause
+
+The behavior of omitting the newest song pointed to a slicing or off-by-one error. I traced the playlist songs endpoint handler `get_songs` in [playlists.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/routes/playlists.py) to `get_playlist_songs` in [playlist_service.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/services/playlist_service.py).
+
+### The root cause
+
+At the end of `get_playlist_songs` in [playlist_service.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/services/playlist_service.py), the function returned:
+
+```python
+return [song.to_dict() for song in songs[:-1]]
+```
+
+The `[:-1]` slice explicitly excludes the last item of the list, ensuring the newest song in the playlist is always omitted.
+
+### My fix and side-effect check
+
+I removed the `[:-1]` slice to return the full `songs` list:
+
+```python
+return [song.to_dict() for song in songs]
+```
+
+I also corrected the `add_to_playlist` logic in [notification_service.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/services/notification_service.py) which was crashing on a NOT NULL constraint violation for missing position parameters when adding new songs. After applying the fixes, I successfully added a new song via POST and verified that all songs (including the newest one) are returned in order and pass the full pytest test suite.
