@@ -117,3 +117,13 @@ def test_search_returns_empty_for_no_match(app, seed_songs):
     with app.app_context():
         results = search_songs("zzz_no_match_zzz")
         assert results == []
+
+
+def test_song_search_deduplicates_results(app, seed_songs):
+    """Searching Anthem should return each song ID only once."""
+    client = app.test_client()
+    response = client.get("/songs/search?q=Anthem")
+    assert response.status_code == 200
+    data = response.get_json()
+    song_ids = [song["id"] for song in data["results"]]
+    assert len(song_ids) == len(set(song_ids))

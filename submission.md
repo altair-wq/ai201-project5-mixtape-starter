@@ -129,3 +129,13 @@ return [song.to_dict() for song in songs]
 ```
 
 I also corrected the `add_to_playlist` logic in [notification_service.py](file:///Users/altairadilkhan/.gemini/antigravity/scratch/ai201-project5-mixtape-starter/services/notification_service.py) which was crashing on a NOT NULL constraint violation for missing position parameters when adding new songs. After applying the fixes, I successfully added a new song via POST and verified that all songs (including the newest one) are returned in order and pass the full pytest test suite.
+
+# Regression Tests
+
+I added a regression test in [test_search.py](file:///Users/altairadilkhan/.gemini/antigravity/tests/test_search.py) named `test_song_search_deduplicates_results` to verify that song searching does not return duplicate song results. It queries the `/songs/search?q=Anthem` endpoint using the Flask test client and asserts that all returned song IDs are unique.
+
+# Git Log Screenshot
+
+I included a screenshot of `git log --oneline` showing separate commits for each bug fix on the `bugfix/mixtape` branch.
+
+![Git Log Screenshot](git-log-screenshot.png)
